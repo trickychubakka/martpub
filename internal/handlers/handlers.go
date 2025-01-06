@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/jackc/pgx/v5/pgconn"
 	luhnmod10 "github.com/luhnmod10/go"
 	"io"
@@ -175,7 +176,6 @@ func RegisterHandler(ctx context.Context, conf *initconf.Config, store Storager)
 			c.Status(http.StatusInternalServerError)
 			return
 		}
-		// TODO токен в Authorization?
 		c.Header("Authorization", "Bearer "+token)
 		c.JSON(http.StatusOK, storage.SignedResponse{
 			Token:   token,
@@ -234,7 +234,6 @@ func LoginHandler(ctx context.Context, conf *initconf.Config, store Storager) gi
 			}
 			return
 		}
-		// TODO токен в Authorization?
 		c.Header("Authorization", "Bearer "+token)
 		c.JSON(http.StatusOK, storage.SignedResponse{
 			Token:   token,

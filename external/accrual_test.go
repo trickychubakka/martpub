@@ -54,7 +54,6 @@ func TestRegisterAccrual(t *testing.T) {
 		want    *AccrualResponse
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "Positive RegisterAccrual Test",
 			args: args{
@@ -128,7 +127,6 @@ func TestSendRequest(t *testing.T) {
 		want    *http.Response
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{
 			name: "Positive SendRequest Test",
 			args: args{
