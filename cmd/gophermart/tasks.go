@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"martnew/cmd/gophermart/initconf"
 	"martnew/external"
 	"martnew/internal/handlers"
@@ -84,7 +85,7 @@ func worker(ctx context.Context, conf *initconf.Config, store handlers.Storager,
 						results <- err.Error()
 						return err
 					}
-					message := "OrderID: " + accrual.Order + ", prev status - " + tmpStatus + ", new status - " + accrual.Status
+					message := fmt.Sprintf("OrderID: %s, prev status - %s, new status - %s", accrual.Order, tmpStatus, accrual.Status)
 					results <- message
 
 					tmpStatus = accrual.Status

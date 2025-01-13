@@ -70,8 +70,7 @@ func main() {
 	// Config initialization
 	log.Println("main: Config initialization start")
 	if err := initconf.InitConfig(&conf); err != nil {
-		log.Println("Panic in initConfig")
-		panic(err)
+		log.Fatal("Panic in initConfig")
 	}
 	logger = conf.LogConf.Logger
 
@@ -85,6 +84,9 @@ func main() {
 	}
 	if database {
 		logger.Info("Storage type is PGSTORAGE.")
+		if _, ok := store.(pgstorage.PgStorage); !ok {
+			panic("Error in type casting -- must be pgstorage.PgStorage")
+		}
 		defer store.(pgstorage.PgStorage).Close()
 	} else {
 		logger.Info("Storage type is INMEM.")
