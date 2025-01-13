@@ -9,11 +9,20 @@ import (
 	"martnew/cmd/gophermart/initconf"
 	"martnew/internal/storage"
 	"net/http"
+	"strconv"
 	"time"
 )
 
 // Accrual system URL
 const accrualURL = "/api/orders/"
+
+type TooManyRequestsError struct {
+	Timeout int
+}
+
+func (err TooManyRequestsError) Error() string {
+	return fmt.Sprintf("Too many requests. Retry after %d sec", err.Timeout)
+}
 
 type Storager interface {
 	RegisterUser(ctx context.Context, conf *initconf.Config, loginReq storage.UserLoginRequest) (*storage.User, error)
@@ -103,9 +112,13 @@ func RegisterAccrual(ctx context.Context, conf *initconf.Config, store Storager,
 	}
 	// при получении 429 StatusTooManyRequests
 	if response.StatusCode == http.StatusTooManyRequests {
+		var err TooManyRequestsError
 		logger.Info("RegisterAccrual: StatusTooManyRequests", "Retry-After", response.Header.Get("Retry-After"))
-		timeout := response.Header.Get("Retry-After") + "s"
-		return nil, fmt.Errorf("StatusTooManyRequests %s", timeout)
+		//timeout := response.Header.Get("Retry-After") + "s"
+		timeout := response.Header.Get("Retry-After")
+		err.Timeout, _ = strconv.Atoi(timeout)
+		//return nil, fmt.Errorf("StatusTooManyRequests %s", timeout)
+		return nil, err
 	}
 
 	if response.StatusCode == http.StatusInternalServerError {

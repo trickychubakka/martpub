@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"martnew/cmd/gophermart/initconf"
 	"martnew/external"
 	"martnew/internal/handlers"
-	"strings"
 	"sync"
 	"time"
 )
@@ -54,14 +54,23 @@ func worker(ctx context.Context, conf *initconf.Config, store handlers.Storager,
 						continue
 					}
 					// проверяем ошибку StatusTooManyRequests -- разбиваем на 2 части, вторая часть -- таймаут, который используем в sleep
-					if errSplit := strings.Split(err.Error(), " "); errSplit[0] == "StatusTooManyRequests" {
-						logger.Error("worker got StatusTooManyRequests, sleep for", "time", errSplit[1])
-						t, err1 := time.ParseDuration(errSplit[1])
-						if err1 != nil {
-							logger.Error("worker got StatusTooManyRequests, but time.ParseDuration failed with ", "error", err1)
+					//if errSplit := strings.Split(err.Error(), " "); errSplit[0] == "StatusTooManyRequests" {
+					//	logger.Error("worker got StatusTooManyRequests, sleep for", "time", errSplit[1])
+					//	t, err1 := time.ParseDuration(errSplit[1])
+					//	if err1 != nil {
+					//		logger.Error("worker got StatusTooManyRequests, but time.ParseDuration failed with ", "error", err1)
+					//	}
+					//	time.Sleep(t)
+					//}
+
+					tooManyRequestsError, ok := err.(external.TooManyRequestsError)
+					if ok {
+						if errors.Is(err, tooManyRequestsError) {
+							logger.Error("worker got StatusTooManyRequests, sleep for", "time", tooManyRequestsError.Timeout)
+							time.Sleep(time.Duration(tooManyRequestsError.Timeout) * time.Second)
 						}
-						time.Sleep(t)
 					}
+
 					logger.Error("worker: failed to register accrual", "number", orderID, "error", err)
 					results <- err.Error()
 					return err
