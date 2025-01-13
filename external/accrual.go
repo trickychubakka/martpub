@@ -10,7 +10,6 @@ import (
 	"martnew/internal/storage"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 // Accrual system URL
@@ -39,7 +38,7 @@ type Storager interface {
 }
 
 // Набор из 3-х таймаутов для повтора операции в случае retriable-ошибки
-var timeoutsRetryConst = [3]int{1, 3, 5}
+var timeoutsRetryConst = []int{1, 3, 5}
 
 var logger *slog.Logger
 
@@ -65,25 +64,11 @@ func SendRequest(client *http.Client, url string, contentType string, conf *init
 	response, err := client.Do(req)
 
 	if err != nil {
-		logger.Warn("SendRequest error in 1 attempt.", "Error", err)
-		for i, t := range timeoutsRetryConst {
-			logger.Warn("SendRequest. Trying to recover after ", "seconds", t, "attempt number", i+1)
-			time.Sleep(time.Duration(t) * time.Second)
-			response, err = client.Do(req)
-			if err != nil {
-				logger.Warn("SendRequest: attempt ", "attempt", i+1, "Error", err)
-				if i == 2 {
-					logger.Error("SendRequest: client.Do error", "Error", err)
-					return nil, fmt.Errorf("%s %v", "SendRequest: client.Do error", err)
-				}
-				continue
-			}
-			return response, nil
-		}
+		logger.Error("SendRequest: client.Do error", "Error", err)
+		return nil, fmt.Errorf("%s %v", "SendRequest: client.Do error", err)
 	}
 	if response != nil {
 		logger.Debug("SendRequest: response is", "Response", response)
-
 	}
 	return response, nil
 }

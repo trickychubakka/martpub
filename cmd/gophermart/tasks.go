@@ -92,10 +92,10 @@ func worker(ctx context.Context, conf *initconf.Config, store handlers.Storager,
 	return nil
 }
 
+// resultProcessing горутина обработчика результатов работы worker-ов
 func resultProcessing(ctx context.Context, wg *sync.WaitGroup, results <-chan string) {
 	logger.Debug("resultProcessing goroutine started")
 	defer func() {
-		logger.Debug("resultProcessing goroutine finished")
 		wg.Done()
 	}()
 	for {
@@ -103,7 +103,7 @@ func resultProcessing(ctx context.Context, wg *sync.WaitGroup, results <-chan st
 		case message := <-results:
 			logger.Debug("Message from worker", "message", message)
 		case <-ctx.Done():
-			logger.Debug("resultProcessing goroutine stopped")
+			logger.Debug("resultProcessing goroutine finished")
 			return
 		default:
 			time.Sleep(1 * time.Second)
@@ -125,11 +125,7 @@ func task(ctx context.Context, conf *initconf.Config, store handlers.Storager, w
 	}
 	logger.Debug("task: Started worker pool with", "workersNumber", workerPoolSize)
 
-	// for i := 1; i <= workerPoolSize; i++ {
-	//	message := <-results
-	//	logger.Debug("Message from worker", "message", message)
-	//}
-
+	// старт горутины обработчика результатов работы worker-ов
 	wg.Add(1)
 	go resultProcessing(ctxWorker, wg, results)
 
