@@ -65,6 +65,7 @@ func main() {
 
 	// создаем буферизованный канал для принятия задач в worker
 	// константа workerPoolSize определена в tasks.go
+	// задачи отсылаются в канал jobs в handlers.OrdersPostHandler
 	jobs := make(chan string, workerPoolSize)
 
 	// Config initialization

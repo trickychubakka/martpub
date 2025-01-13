@@ -54,16 +54,7 @@ func worker(ctx context.Context, conf *initconf.Config, store handlers.Storager,
 						accrual = &external.AccrualResponse{Status: ""}
 						continue
 					}
-					// проверяем ошибку StatusTooManyRequests -- разбиваем на 2 части, вторая часть -- таймаут, который используем в sleep
-					//if errSplit := strings.Split(err.Error(), " "); errSplit[0] == "StatusTooManyRequests" {
-					//	logger.Error("worker got StatusTooManyRequests, sleep for", "time", errSplit[1])
-					//	t, err1 := time.ParseDuration(errSplit[1])
-					//	if err1 != nil {
-					//		logger.Error("worker got StatusTooManyRequests, but time.ParseDuration failed with ", "error", err1)
-					//	}
-					//	time.Sleep(t)
-					//}
-
+					// Проверяем ошибку StatusTooManyRequests. Вытаскиваем из ошибки таймаут, который используем в sleep
 					tooManyRequestsError, ok := err.(external.TooManyRequestsError)
 					if ok {
 						if errors.Is(err, tooManyRequestsError) {
@@ -95,9 +86,29 @@ func worker(ctx context.Context, conf *initconf.Config, store handlers.Storager,
 			}
 			// пауза перед следующей итерацией
 			time.Sleep(time.Duration(1) * time.Second)
+			logger.Debug("worker running", "workerID", workerID)
 		}
 	}
 	return nil
+}
+
+func resultProcessing(ctx context.Context, wg *sync.WaitGroup, results <-chan string) {
+	logger.Debug("resultProcessing goroutine started")
+	defer func() {
+		logger.Debug("resultProcessing goroutine finished")
+		wg.Done()
+	}()
+	for {
+		select {
+		case message := <-results:
+			logger.Debug("Message from worker", "message", message)
+		case <-ctx.Done():
+			logger.Debug("resultProcessing goroutine stopped")
+			return
+		default:
+			time.Sleep(1 * time.Second)
+		}
+	}
 }
 
 // task функция управления горутинами запроса ко внешней Accrual системе
@@ -114,10 +125,13 @@ func task(ctx context.Context, conf *initconf.Config, store handlers.Storager, w
 	}
 	logger.Debug("task: Started worker pool with", "workersNumber", workerPoolSize)
 
-	for i := 1; i <= workerPoolSize; i++ {
-		message := <-results
-		logger.Debug("Message from worker", "message", message)
-	}
+	// for i := 1; i <= workerPoolSize; i++ {
+	//	message := <-results
+	//	logger.Debug("Message from worker", "message", message)
+	//}
+
+	wg.Add(1)
+	go resultProcessing(ctxWorker, wg, results)
 
 	<-ctx.Done()
 	logger.Debug("WORKER stopping")
